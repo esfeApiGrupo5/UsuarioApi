@@ -8,7 +8,7 @@ public class HolaMundoController {
 
     @GetMapping("/")
     public String holaMundo() {
-        return "¡Hola Mundo desde Spring Boot! get";
+        return "¡Hola Mundo desde la Api de Usuario! get";
     }
 
 
