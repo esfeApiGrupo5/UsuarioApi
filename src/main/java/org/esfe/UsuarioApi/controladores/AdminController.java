@@ -1,4 +1,4 @@
-package org.esfe.UsuarioApi.controladores;
+/*package org.esfe.UsuarioApi.controladores;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,5 +36,7 @@ public class AdminController {
         return ResponseEntity.ok("Listado de roles (futuro consumo de microservicio)");
     }
 }
+*/
 
+//SIN FUNCIONALIDAD
 
