@@ -2,6 +2,8 @@ package com.example.UsuarioApi.servicios.interfaces;
 
 import com.example.UsuarioApi.modelos.Rol;
 import com.example.UsuarioApi.dtos.RolSalidaDto;
+import com.example.UsuarioApi.dtos.RolGuardarDto;
+import com.example.UsuarioApi.dtos.RolModificarDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -16,7 +18,8 @@ public interface IRolService {
 
     RolSalidaDto obtenerPorId(Integer id);
 
-    RolSalidaDto crearOEditar(Rol rol);
+    RolSalidaDto crear(RolGuardarDto rolGuardarDto);
+    RolSalidaDto editar(RolModificarDto rolModificarDto);
 
     void eliminarPorId(Integer id);
 }

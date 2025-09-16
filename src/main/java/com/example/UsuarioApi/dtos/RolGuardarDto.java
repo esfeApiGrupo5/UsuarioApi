@@ -16,4 +16,9 @@ public class RolGuardarDto implements Serializable {
     @NotBlank(message = "La descripción del rol es requerido")
     @Size(min = 5, max = 200, message = "La descripción debe tener entre 5 y 200 caracteres")
     private String descripcion;
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 }

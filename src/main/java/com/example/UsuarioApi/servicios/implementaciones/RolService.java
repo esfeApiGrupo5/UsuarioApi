@@ -1,10 +1,11 @@
 package com.example.UsuarioApi.servicios.implementaciones;
 
 import com.example.UsuarioApi.dtos.RolSalidaDto;
+import com.example.UsuarioApi.dtos.RolGuardarDto;
+import com.example.UsuarioApi.dtos.RolModificarDto;
 import com.example.UsuarioApi.modelos.Rol;
 import com.example.UsuarioApi.repositorios.IRolRepository;
 import com.example.UsuarioApi.servicios.interfaces.IRolService;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,9 +18,6 @@ import java.util.List;
 public class RolService implements IRolService{
     @Autowired
     private IRolRepository rolRepository;
-
-    @Autowired
-    private ModelMapper modelMapper;
 
     @Override
     public Page<RolSalidaDto> obtenerTodosPaginados(Pageable pageable) {
@@ -46,14 +44,30 @@ public class RolService implements IRolService{
     }
 
     @Override
-    public RolSalidaDto crearOEditar(Rol rol) {
+    public void eliminarPorId(Integer id) {
+        rolRepository.deleteById(id);
+    }
+
+    @Override
+    public RolSalidaDto crear(RolGuardarDto rolGuardarDto) {
+        Rol rol = new Rol();
+        rol.setNombre(rolGuardarDto.getNombre());
+        rol.setDescripcion(rolGuardarDto.getDescripcion());
         Rol guardado = rolRepository.save(rol);
         return toRolSalidaDto(guardado);
     }
 
     @Override
-    public void eliminarPorId(Integer id) {
-        rolRepository.deleteById(id);
+    public RolSalidaDto editar(RolModificarDto rolModificarDto) {
+        Optional<Rol> rolOptional = rolRepository.findById(rolModificarDto.getId());
+        if (rolOptional.isEmpty()) {
+            return null;
+        }
+        Rol rol = rolOptional.get();
+        rol.setNombre(rolModificarDto.getNombre());
+        rol.setDescripcion(rolModificarDto.getDescripcion());
+        Rol actualizado = rolRepository.save(rol);
+        return toRolSalidaDto(actualizado);
     }
 
     // Método de mapeo
