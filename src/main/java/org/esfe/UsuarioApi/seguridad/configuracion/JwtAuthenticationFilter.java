@@ -28,24 +28,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String path = request.getRequestURI();
-        if (path.startsWith("/api/auth/")) {
+        // Obtener el token del request
+        final String token = getTokenFromRequest(request);
+        final String username;
+
+        // Si no hay token, continuar con la cadena de filtros
+        if (token == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        final String token = obtenerTokenDelRequest(request);
-        final String login;
+        // Extraer el username del token
+        username = jwtService.getUsernameFromToken(token);
 
-        if(token == null){
-            filterChain.doFilter(request, response);
-            return;
-        }
+        // Si hay username y no hay autenticación previa en el contexto
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-        login = jwtService.getUsernameFromToken(token);
-        if(login != null && SecurityContextHolder.getContext().getAuthentication() == null){
-            UserDetails userDetails = userDetailsService.loadUserByUsername(login);
-            if(jwtService.isTokenValid(token, userDetails)){
+            // Validar el token
+            if (jwtService.isTokenValid(token, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
@@ -60,10 +61,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String obtenerTokenDelRequest(HttpServletRequest request) {
+    private String getTokenFromRequest(HttpServletRequest request) {
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if(StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")){
+        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
             return authHeader.substring(7);
         }
         return null;
@@ -71,7 +72,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        String path = request.getServletPath();
-        return path.startsWith("/api/auth/login") || path.startsWith("/api/auth/registrar");
+        String path = request.getRequestURI(); // ✅ Cambié getServletPath() por getRequestURI()
+
+        // Excluir completamente las rutas de autenticación
+        return path.startsWith("/api/auth/") ||
+                path.equals("/") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/v3/api-docs");
     }
 }
+
+
