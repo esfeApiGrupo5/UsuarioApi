@@ -1,21 +1,22 @@
 package com.example.UsuarioApi.servicios.interfaces;
 
 import com.example.UsuarioApi.modelos.Rol;
+import com.example.UsuarioApi.dtos.RolSalidaDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
 public interface IRolService {
-    Page<Rol> obtenerTodosPaginados(Pageable pageable);
+    Page<RolSalidaDto> obtenerTodosPaginados(Pageable pageable);
 
-    List<Rol> obtenerTodos();
+    List<RolSalidaDto> obtenerTodos();
 
-    Page<Rol> findByNombreContainingIgnoreCaseAndDescripcionContainingIgnoreCaseOrderByIdDesc(String nombre, String descripcion, Pageable pageable);
+    Page<RolSalidaDto> findByNombreContainingIgnoreCaseAndDescripcionContainingIgnoreCaseOrderByIdDesc(String nombre, String descripcion, Pageable pageable);
 
-    Rol obtenerPorId(Integer id);
+    RolSalidaDto obtenerPorId(Integer id);
 
-    Rol crearOEditar(Rol rol);
+    RolSalidaDto crearOEditar(Rol rol);
 
     void eliminarPorId(Integer id);
 }
