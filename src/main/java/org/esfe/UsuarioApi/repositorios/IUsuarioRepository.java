@@ -13,6 +13,9 @@ public interface IUsuarioRepository extends JpaRepository<Usuario, Integer> {
     // Metodo para el login
     Optional<Usuario> findByCorreoAndPassword(String correo, String password);
 
+    // Nuevo método para buscar por correo
+    Optional<Usuario> findByCorreo(String correo);
+
     // Metodo para búsquedas con paginación
     Page<Usuario> findByNombreContainingIgnoreCaseAndCorreoContainingIgnoreCaseAndRol_IdOrderByIdDesc(
             String nombre, String correo, Integer idRol, Pageable pageable);

@@ -1,21 +1,28 @@
 package org.esfe.UsuarioApi.servicios.implementaciones;
 
 import org.esfe.UsuarioApi.dtos.UsuarioGuardarDto;
+import org.esfe.UsuarioApi.seguridad.dtos.UsuarioLogin;
 import org.esfe.UsuarioApi.dtos.UsuarioModificarDto;
+import org.esfe.UsuarioApi.seguridad.dtos.UsuarioRegistrar;
 import org.esfe.UsuarioApi.dtos.UsuarioSalidaDto;
 import org.esfe.UsuarioApi.modelos.Usuario;
 import org.esfe.UsuarioApi.repositorios.IUsuarioRepository;
 import org.esfe.UsuarioApi.repositorios.IRolRepository;
+import org.esfe.UsuarioApi.seguridad.servicios.JwtService;
 import org.esfe.UsuarioApi.servicios.interfaces.IUsuarioService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import org.esfe.UsuarioApi.seguridad.dtos.UsuarioToken;
 
 @Service
 public class UsuarioService implements IUsuarioService {
@@ -29,12 +36,43 @@ public class UsuarioService implements IUsuarioService {
     @Autowired
     private ModelMapper modelMapper;
 
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
     // Método de login
     @Override
     public UsuarioSalidaDto login(String correo, String password) {
         Usuario usuario = usuarioRepository.findByCorreoAndPassword(correo, password)
                 .orElse(null);
         return usuario != null ? toUsuarioSalidaDto(usuario) : null;
+    }
+
+    // Nuevo método de login con JWT
+    public UsuarioToken login(UsuarioLogin loginRequest) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginRequest.getCorreo(), loginRequest.getPassword())
+        );
+        Usuario usuario = usuarioRepository.findByCorreo(loginRequest.getCorreo()).orElseThrow();
+        String token = jwtService.getToken(usuario);
+        return new UsuarioToken(token);
+    }
+
+    // Nuevo método de registro con JWT
+    public UsuarioToken registro(UsuarioRegistrar registroRequest) {
+        Usuario usuario = new Usuario();
+        usuario.setNombre(registroRequest.getNombre());
+        usuario.setCorreo(registroRequest.getCorreo());
+        usuario.setPassword(passwordEncoder.encode(registroRequest.getPassword()));
+        usuario.setEstado(1); // 1 = activo
+        usuario.setRol(rolRepository.findById(registroRequest.getIdRol()).orElse(null));
+        usuarioRepository.save(usuario);
+        return new UsuarioToken(jwtService.getToken(usuario));
     }
 
     @Override
@@ -61,7 +99,9 @@ public class UsuarioService implements IUsuarioService {
 
     @Override
     public UsuarioSalidaDto obtenerPorId(Integer id) {
-        return modelMapper.map(usuarioRepository.findById(id).get(), UsuarioSalidaDto.class);
+        return usuarioRepository.findById(id)
+                .map(usuario -> modelMapper.map(usuario, UsuarioSalidaDto.class))
+                .orElse(null);
     }
 
     @Override
@@ -74,6 +114,8 @@ public class UsuarioService implements IUsuarioService {
         } else {
             usuario.setRol(null);
         }
+        // Cifrar la contraseña antes de guardar
+        usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
         Usuario guardado = usuarioRepository.save(usuario);
         return modelMapper.map(guardado, UsuarioSalidaDto.class);
     }
