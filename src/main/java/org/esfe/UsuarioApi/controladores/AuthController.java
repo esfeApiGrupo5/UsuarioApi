@@ -10,6 +10,7 @@ import org.esfe.UsuarioApi.repositorios.IUsuarioRepository;
 import org.esfe.UsuarioApi.modelos.Usuario;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,8 +21,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest; // ✅ AGREGAR ESTA IMPORTACIÓN
 import jakarta.validation.Valid;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 
 @RestController
@@ -62,6 +65,50 @@ public class AuthController {
         String token = jwtService.getToken(usuario);
         UsuarioToken usuarioToken = new UsuarioToken(token);
         return ResponseEntity.ok(usuarioToken);
+    }
+
+    // ✅ NUEVO ENDPOINT DE VALIDACIÓN CORREGIDO
+    @GetMapping("/validate")
+    public ResponseEntity<Map<String, Object>> validateToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("valid", false, "message", "Token no encontrado"));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            String username = jwtService.getUsernameFromToken(token);
+            Long userId = jwtService.getUserIdFromToken(token);
+
+            Optional<Usuario> usuarioOpt = usuarioRepository.findByCorreo(username);
+            if (usuarioOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("valid", false, "message", "Usuario no encontrado"));
+            }
+
+            Usuario usuario = usuarioOpt.get();
+            boolean isValid = jwtService.isTokenValid(token, usuario);
+
+            if (isValid) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("valid", true);
+                response.put("userId", userId);
+                response.put("username", username);
+                response.put("nombre", usuario.getNombre());
+                response.put("rol", usuario.getRol().getNombre());
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("valid", false, "message", "Token inválido"));
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("valid", false, "message", "Error validando token: " + e.getMessage()));
+        }
     }
 
     // ENDPOINTS DE DEBUG - REMOVER EN PRODUCCIÓN
@@ -114,7 +161,6 @@ public class AuthController {
         return username -> usuarioRepository.findByCorreo(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
     }
-    // Añade este endpoint a tu AuthController para regenerar la contraseña correctamente
 
     @PostMapping("/regenerar-password")
     public ResponseEntity<String> regenerarPassword(@RequestBody Map<String, String> request) {
@@ -130,7 +176,6 @@ public class AuthController {
             Usuario usuario = usuarioOpt.get();
             String passwordHasheada = passwordEncoder.encode(nuevaPassword);
 
-            // Mostrar información antes del cambio
             String infoPrevio = String.format(
                     "ANTES:\nPassword antigua: %s\nPassword nueva raw: %s\nPassword nueva hasheada: %s",
                     usuario.getPassword().substring(0, 20) + "...",
@@ -138,11 +183,9 @@ public class AuthController {
                     passwordHasheada.substring(0, 20) + "..."
             );
 
-            // Actualizar la contraseña
             usuario.setPassword(passwordHasheada);
             usuarioRepository.save(usuario);
 
-            // Verificar que se guardó correctamente
             boolean matches = passwordEncoder.matches(nuevaPassword, passwordHasheada);
 
             return ResponseEntity.ok(String.format(

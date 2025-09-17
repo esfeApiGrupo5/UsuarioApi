@@ -25,7 +25,10 @@ public class JwtService {
 
         HashMap<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("roles", roles);
-        // Ahora Usuario implementa UserDetails, así que lo usamos directamente
+        extraClaims.put("userId", usuario.getId().longValue()); // ¡IMPORTANTE! Incluir userId
+        extraClaims.put("nombre", usuario.getNombre());
+        extraClaims.put("correo", usuario.getCorreo());
+
         return generarToken(extraClaims, usuario);
     }
 
@@ -35,7 +38,7 @@ public class JwtService {
                 .setClaims(extraClaims)
                 .setSubject(usuario.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24 horas
                 .signWith(getKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -47,6 +50,11 @@ public class JwtService {
 
     public String getUsernameFromToken(String token) {
         return getClaim(token, Claims::getSubject);
+    }
+
+    public Long getUserIdFromToken(String token) {
+        Claims claims = getAllClaims(token);
+        return claims.get("userId", Long.class);
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
