@@ -82,5 +82,7 @@ public class UsuarioController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(usuario);
+
     }
+
 }
