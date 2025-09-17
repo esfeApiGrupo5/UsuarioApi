@@ -12,4 +12,7 @@ public class UsuarioApiApplication {
 		SpringApplication.run(UsuarioApiApplication.class, args);
 	}
 
+
+
+
 }
