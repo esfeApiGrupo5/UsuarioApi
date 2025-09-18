@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.esfe.UsuarioApi.seguridad.servicios.JwtService;
+import org.esfe.UsuarioApi.seguridad.servicios.TokenBlacklistService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,6 +27,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         // Obtener el token del request
@@ -35,6 +39,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Si no hay token, continuar con la cadena de filtros
         if (token == null) {
             filterChain.doFilter(request, response);
+            return;
+        }
+
+        // ✅ NUEVA VERIFICACIÓN: Verificar si el token está en la lista negra
+        if (tokenBlacklistService.isTokenBlacklisted(token)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("{\"error\":\"Token ha sido invalidado\"}");
+            response.setContentType("application/json");
             return;
         }
 
@@ -72,7 +84,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        String path = request.getRequestURI(); // ✅ Cambié getServletPath() por getRequestURI()
+        String path = request.getRequestURI();
 
         // Excluir completamente las rutas de autenticación
         return path.startsWith("/api/auth/") ||
@@ -81,5 +93,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 path.startsWith("/v3/api-docs");
     }
 }
-
-

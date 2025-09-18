@@ -5,6 +5,7 @@ import org.esfe.UsuarioApi.dtos.UsuarioSalidaDto;
 import org.esfe.UsuarioApi.seguridad.dtos.UsuarioLogin;
 import org.esfe.UsuarioApi.seguridad.dtos.UsuarioToken;
 import org.esfe.UsuarioApi.seguridad.servicios.JwtService;
+import org.esfe.UsuarioApi.seguridad.servicios.TokenBlacklistService;
 import org.esfe.UsuarioApi.servicios.interfaces.IUsuarioService;
 import org.esfe.UsuarioApi.repositorios.IUsuarioRepository;
 import org.esfe.UsuarioApi.modelos.Usuario;
@@ -21,7 +22,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest; // ✅ AGREGAR ESTA IMPORTACIÓN
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.Map;
 import java.util.HashMap;
@@ -46,6 +47,9 @@ public class AuthController {
     @Autowired
     private IUsuarioRepository usuarioRepository;
 
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService; // ← NUEVA DEPENDENCIA
+
     // Registro de usuario
     @PostMapping("/registrar")
     public ResponseEntity<UsuarioSalidaDto> registrar(@Valid @RequestBody UsuarioGuardarDto usuarioDto) {
@@ -67,7 +71,45 @@ public class AuthController {
         return ResponseEntity.ok(usuarioToken);
     }
 
-    // ✅ NUEVO ENDPOINT DE VALIDACIÓN CORREGIDO
+    // ✅ NUEVO ENDPOINT DE LOGOUT
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "Token no encontrado"));
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            // Verificar que el token sea válido antes de invalidarlo
+            String username = jwtService.getUsernameFromToken(token);
+
+            if (username != null) {
+                // Añadir el token a la lista negra
+                tokenBlacklistService.blacklistToken(token);
+
+                // Limpiar el contexto de seguridad
+                SecurityContextHolder.clearContext();
+
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("message", "Sesión cerrada exitosamente");
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "Token inválido"));
+            }
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("success", false, "message", "Error al cerrar sesión: " + e.getMessage()));
+        }
+    }
+
+    // ✅ ENDPOINT DE VALIDACIÓN CORREGIDO
     @GetMapping("/validate")
     public ResponseEntity<Map<String, Object>> validateToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
@@ -80,6 +122,12 @@ public class AuthController {
         String token = authHeader.substring(7);
 
         try {
+            // ✅ VERIFICAR SI EL TOKEN ESTÁ EN LA LISTA NEGRA
+            if (tokenBlacklistService.isTokenBlacklisted(token)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("valid", false, "message", "Token ha sido invalidado"));
+            }
+
             String username = jwtService.getUsernameFromToken(token);
             Long userId = jwtService.getUserIdFromToken(token);
 
