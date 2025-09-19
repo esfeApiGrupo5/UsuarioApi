@@ -33,23 +33,34 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf->csrf.disable())
                 .authorizeHttpRequests(authRequest -> authRequest
-                        // ✅ RUTAS PÚBLICAS - SOLO LO ESENCIAL
+                        // ✅ RUTAS PÚBLICAS - ESPECIALMENTE PARA GATEWAY
                         .requestMatchers(
-                                "/",                                           // Hola mundo
-                                "/hola/**",                                    // Endpoints de prueba
-                                "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", // Swagger
-                                "/api/auth/login",                             // ✅ LOGIN PÚBLICO
-                                "/api/auth/logout",                            // ✅ LOGOUT PÚBLICO
-                                "/api/auth/registrar",                         // ✅ REGISTRO PÚBLICO
-                                "/api/auth/validate",                          // ✅ VALIDACIÓN PÚBLICA
-                                "/api/auth/debug-**",                          // Endpoints de debug
-                                "/actuator/health",                            // Health check para gateway
-                                "/error"                                       // Manejo de errores
+                                // Endpoints básicos
+                                "/",
+                                "/hola/**",
+
+                                // Swagger y documentación
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+
+                                // ✅ AUTENTICACIÓN - LO MÁS IMPORTANTE PARA EL GATEWAY
+                                "/api/auth/login",
+                                "/api/auth/logout",
+                                "/api/auth/registrar",
+                                "/api/auth/validate",
+                                "/api/auth/debug-**",
+
+                                // ✅ HEALTH CHECKS - CRÍTICO PARA QUE EL GATEWAY DETECTE EL SERVICIO
+                                "/actuator/**",
+                                "/health",
+
+                                // Manejo de errores
+                                "/error"
                         ).permitAll()
-                        // ✅ TODO LO DEMÁS REQUIERE AUTENTICACIÓN
-                        .requestMatchers("/api/roles/**").authenticated()      // Roles protegidos
-                        .requestMatchers("/api/usuarios/**").authenticated()   // Usuarios protegidos
-                        .anyRequest().authenticated()                          // Cualquier otra ruta
+
+                        // ✅ RESTO REQUIERE AUTENTICACIÓN (puede venir del Gateway)
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(sessionManager ->
                         sessionManager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -61,16 +72,19 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // ✅ CORS PERMISIVO PARA GATEWAY Y ACCESO DIRECTO
+
+        // ✅ CONFIGURACIÓN CORS PARA MICROSERVICIOS Y GATEWAY
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",     // Frontend local
-                "http://localhost:4200",
-                "http://localhost:8080",     // Gateway local típico
+                "http://localhost:3000",                    // Frontend local
+                "http://localhost:8080",                    // Gateway local
                 "http://localhost:8081",
-                "http://localhost:8761",     // Eureka
-                "http://localhost:54042"     // Tu puerto actual
+                "http://localhost:8082",
+                "https://*.onrender.com",                   // Servicios en Render
+                "https://api-gateway-*.onrender.com",       // Gateway en la nube
+                "https://eureka-server-1jnn.onrender.com"   // Eureka server
         ));
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
@@ -83,14 +97,20 @@ public class SecurityConfig {
 }
 
 /*
- * ✅ CONFIGURACIÓN PARCIAL:
- * - /api/auth/** → PÚBLICO (login, logout, registro, validación)
- * - /api/roles/** → REQUIERE AUTENTICACIÓN
- * - /api/usuarios/** → REQUIERE AUTENTICACIÓN
- * - Swagger y health checks → PÚBLICO
+ * ✅ CONFIGURACIÓN OPTIMIZADA PARA GATEWAY:
  *
- * Esto permite:
- * 1. Gateway puede hacer health checks
- * 2. Frontend puede hacer login/logout sin token
- * 3. Operaciones CRUD requieren JWT válido
+ * RUTAS PÚBLICAS:
+ * - /api/auth/** → Para que el frontend pueda hacer login/logout
+ * - /actuator/** → Para que el gateway pueda hacer health checks
+ * - /health → Endpoint de salud
+ *
+ * RUTAS PROTEGIDAS:
+ * - /api/usuarios/** → Requieren JWT
+ * - /api/roles/** → Requieren JWT
+ *
+ * El gateway puede:
+ * 1. Detectar el servicio via Eureka
+ * 2. Hacer health checks a /actuator/health
+ * 3. Rutear las peticiones de auth sin problemas
+ * 4. Pasar los JWT para las rutas protegidas
  */

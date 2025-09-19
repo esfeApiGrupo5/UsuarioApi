@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
-@EnableDiscoveryClient  // ✅ Habilitado pero con tolerancia a fallos en properties
+@EnableDiscoveryClient  // ✅ Habilitado para Eureka en la nube
 public class UsuarioApiApplication {
 
 	public static void main(String[] args) {
