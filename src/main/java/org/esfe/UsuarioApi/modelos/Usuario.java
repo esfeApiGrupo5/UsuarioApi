@@ -28,6 +28,9 @@ public class Usuario implements org.springframework.security.core.userdetails.Us
     @JoinColumn(name = "idRol", nullable = false)
     private Rol rol;
 
+    @Column(name = "geolocalizacion", nullable = true)
+    private String geolocalizacion;
+
     @OneToMany(mappedBy = "usuario", // "usuario" es el nombre del campo en la entidad tarjeta que mapea esta relación
             fetch = FetchType.LAZY // Cuando cargues un Rol, los Usuarios no se cargarán hasta que los pidas.
             // LAZY es el valor por defecto para OneToMany y es recomendado para rendimiento.
@@ -79,6 +82,14 @@ public class Usuario implements org.springframework.security.core.userdetails.Us
 
     public void setRol(Rol rol) {
         this.rol = rol;
+    }
+
+    public String getGeolocalizacion() {
+        return geolocalizacion;
+    }
+
+    public void setGeolocalizacion(String geolocalizacion) {
+        this.geolocalizacion = geolocalizacion;
     }
 
     @Override
