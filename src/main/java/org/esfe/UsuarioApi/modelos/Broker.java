@@ -14,6 +14,8 @@ public class Broker {
 
     private BigDecimal porcentajeComisionBase;
 
+    private String geolocalizacion;
+
     @ManyToOne
     @JoinColumn(name = "usuario_id")
     private Usuario usuario; // Puede ser null
@@ -27,6 +29,9 @@ public class Broker {
 
     public BigDecimal getPorcentajeComisionBase() { return porcentajeComisionBase; }
     public void setPorcentajeComisionBase(BigDecimal porcentajeComisionBase) { this.porcentajeComisionBase = porcentajeComisionBase; }
+
+    public String getGeolocalizacion() { return geolocalizacion; }
+    public void setGeolocalizacion(String geolocalizacion) { this.geolocalizacion = geolocalizacion; }
 
     public Usuario getUsuario() { return usuario; }
     public void setUsuario(Usuario usuario) { this.usuario = usuario; }

@@ -12,10 +12,16 @@ public class Empresa {
     private String nombreComercial;
     private String rutNit;
     private String telefono;
+    private String geolocalizacion;
+    private String descripcion;
 
     @ManyToOne
     @JoinColumn(name = "usuario_id")
     private Usuario usuario; // Puede ser null
+
+    @ManyToOne
+    @JoinColumn(name = "broker_id")
+    private Broker broker; // Puede ser null
 
     // Getters y setters
     public Integer getId() { return id; }
@@ -30,7 +36,15 @@ public class Empresa {
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
 
+    public String getGeolocalizacion() { return geolocalizacion; }
+    public void setGeolocalizacion(String geolocalizacion) { this.geolocalizacion = geolocalizacion; }
+
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+
     public Usuario getUsuario() { return usuario; }
     public void setUsuario(Usuario usuario) { this.usuario = usuario; }
-}
 
+    public Broker getBroker() { return broker; }
+    public void setBroker(Broker broker) { this.broker = broker; }
+}
